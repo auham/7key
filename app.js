@@ -203,12 +203,15 @@ function renderSoloPlayersInputs() {
     const wrapper = document.createElement('div');
     wrapper.className = 'input-wrapper';
     
-    // Get previous value if exists, otherwise default
-    const savedName = gameState.players[i-1] || `اللاعب ${i}`;
+    // If it's a default name, keep it empty so placeholder is visible on mobile
+    let savedName = gameState.players[i-1] || '';
+    if (savedName.startsWith('لاعب رقم ') || savedName.startsWith('اللاعب ')) {
+      savedName = '';
+    }
     
     wrapper.innerHTML = `
       <span class="input-prefix">لاعب ${i}</span>
-      <input type="text" id="player-${i}-name" value="${savedName}" placeholder="اسم اللاعب ${i}" maxlength="12" autocomplete="off">
+      <input type="text" id="player-${i}-name" value="${savedName}" placeholder="لاعب رقم ${i}" maxlength="12" autocomplete="off">
     `;
     playersListInputs.appendChild(wrapper);
   }
@@ -246,7 +249,7 @@ function saveCurrentSoloNamesInput() {
   for (let i = 1; i <= soloPlayerCount; i++) {
     const input = document.getElementById(`player-${i}-name`);
     if (input) {
-      currentNames.push(input.value.trim() || `اللاعب ${i}`);
+      currentNames.push(input.value.trim() || `لاعب رقم ${i}`);
     }
   }
   gameState.players = currentNames;
@@ -285,8 +288,8 @@ customTargetInput.addEventListener('input', () => {
 startGameBtn.addEventListener('click', () => {
   // 1. Determine Players / Teams Names
   if (gameState.gameMode === 'team') {
-    const team1Name = team1Input.value.trim() || 'لنا';
-    const team2Name = team2Input.value.trim() || 'لهم';
+    const team1Name = team1Input.value.trim() || 'فريق ١';
+    const team2Name = team2Input.value.trim() || 'فريق ٢';
     
     if (team1Name === team2Name) {
       showToast('الرجاء اختيار أسماء مختلفة للفريقين!');
@@ -704,8 +707,12 @@ window.addEventListener('DOMContentLoaded', () => {
       setMode('solo');
     } else {
       setMode('team');
-      team1Input.value = gameState.players[0] || 'لنا';
-      team2Input.value = gameState.players[1] || 'لهم';
+      let p0 = gameState.players[0] || '';
+      let p1 = gameState.players[1] || '';
+      if (p0 === 'فريق ١' || p0 === 'لنا') p0 = '';
+      if (p1 === 'فريق ٢' || p1 === 'لهم') p1 = '';
+      team1Input.value = p0;
+      team2Input.value = p1;
     }
     
     // Select correct target score in buttons
