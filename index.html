@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>حاسبة لعبة الديمن | حاسبة نقاط ذكية وسريعة</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="تطبيق ويب تقدمي (PWA) بسيط وعصري لحساب نقاط لعبة الديمن (فردي أو جماعي) متوافق بالكامل مع الجوال ويعمل دون اتصال بالإنترنت.">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="حاسبة الديمن">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  
+  <!-- Google Fonts (Cairo & Tajawal) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+  <div class="app-container">
+    
+    <!-- Background Elements -->
+    <div class="glow-bg"></div>
+    <div class="glow-bg-secondary"></div>
+
+    <!-- MAIN HEADER -->
+    <header class="app-header">
+      <div class="header-logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" width="28" height="28">
+          <path d="M12 2L2 12l10 10 10-10L12 2z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+        </svg>
+        <h1>حاسبة الديمن</h1>
+      </div>
+      <button id="theme-toggle" class="theme-btn" aria-label="تغيير المظهر">
+        <svg class="sun-icon" viewBox="0 0 24 24" width="20" height="20">
+          <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" width="20" height="20" style="display: none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="app-content">
+      
+      <!-- SCREEN 1: SETUP SCREEN -->
+      <section id="setup-screen" class="screen active">
+        <div class="card glass">
+          <h2 class="card-title text-center">إعداد مباراة جديدة</h2>
+          <p class="card-subtitle text-center">اختر وضع اللعب وحدد الخيارات المفضلة لديك</p>
+          
+          <!-- Mode Selector -->
+          <div class="mode-selector">
+            <button type="button" id="mode-team-btn" class="mode-btn active" data-mode="team">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <span>لعب جماعي (فرق)</span>
+            </button>
+            <button type="button" id="mode-solo-btn" class="mode-btn" data-mode="solo">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+              </svg>
+              <span>لعب فردي (لاعبين)</span>
+            </button>
+          </div>
+
+          <!-- Team Names Section -->
+          <div id="team-setup-section" class="setup-group">
+            <label class="input-label">أدخل أسماء الفرق:</label>
+            <div class="input-row">
+              <div class="input-wrapper">
+                <span class="input-prefix team-1">فريق 1</span>
+                <input type="text" id="team1-name" value="لنا" placeholder="اسم الفريق الأول" maxlength="15" autocomplete="off">
+              </div>
+              <div class="input-wrapper">
+                <span class="input-prefix team-2">فريق 2</span>
+                <input type="text" id="team2-name" value="لهم" placeholder="اسم الفريق الثاني" maxlength="15" autocomplete="off">
+              </div>
+            </div>
+          </div>
+
+          <!-- Solo Players Section -->
+          <div id="solo-setup-section" class="setup-group" style="display: none;">
+            <div class="players-header">
+              <label class="input-label">اللاعبين المشاركين:</label>
+              <div class="player-controls">
+                <button type="button" id="remove-player-btn" class="btn-circle" aria-label="إزالة لاعب">-</button>
+                <span id="player-count-display" class="player-count">4 لاعبين</span>
+                <button type="button" id="add-player-btn" class="btn-circle" aria-label="إضافة لاعب">+</button>
+              </div>
+            </div>
+            <div id="players-list-inputs" class="players-grid">
+              <!-- Dynamically populated inputs -->
+            </div>
+          </div>
+
+          <!-- Target Score Selection -->
+          <div class="setup-group">
+            <label class="input-label">النتيجة النهائية (الهدف):</label>
+            <div class="target-options">
+              <button type="button" class="target-btn active" data-target="300">300 <span class="badge">أساسي</span></button>
+              <button type="button" class="target-btn" data-target="500">500</button>
+              <button type="button" class="target-btn" data-target="1000">1000</button>
+              <button type="button" class="target-btn" id="custom-target-trigger" data-target="custom">مخصص</button>
+            </div>
+            <div id="custom-target-wrapper" class="input-wrapper custom-target-input" style="display: none; margin-top: 10px;">
+              <input type="number" id="custom-target-input" placeholder="أدخل النتيجة المستهدفة" min="50" max="5000" inputmode="numeric">
+              <span class="input-suffix">نقطة</span>
+            </div>
+          </div>
+
+          <!-- Start Button -->
+          <button type="button" id="start-game-btn" class="btn-primary w-full ripple-effect" style="margin-top: 20px;">
+            ابدأ المباراة الآن
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" class="btn-arrow">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: GAME SCREEN -->
+      <section id="game-screen" class="screen">
+        <!-- Game Sub-header -->
+        <div class="game-meta">
+          <button type="button" id="back-to-setup-btn" class="btn-secondary btn-icon-only" aria-label="عودة">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <div class="game-target-badge">
+            الهدف: <span id="display-target-score">300</span>
+          </div>
+          <button type="button" id="reset-game-btn" class="btn-danger-outline btn-icon-only" aria-label="إعادة تعيين">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Scores Container (Dynamic Grid based on Mode) -->
+        <div id="scores-container" class="scores-grid team-layout">
+          <!-- Dynamically populated scoreboard cards -->
+        </div>
+
+        <!-- Last Round Status -->
+        <div id="last-round-banner" class="last-round-card glass" style="display: none;">
+          <div class="banner-content">
+            <span class="banner-title">الجولة الأخيرة:</span>
+            <span id="last-round-details" class="banner-text">لم يتم لعب أي جولات بعد</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-dock">
+          <button type="button" id="show-add-round-btn" class="btn-primary btn-lg btn-glow w-full pulse-animation">
+            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            تسجيل نقاط الجولة
+          </button>
+          <div class="secondary-actions">
+            <button type="button" id="undo-last-round-btn" class="btn-secondary w-full" disabled>
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                <path d="M3 7v6h6M21 17a9 9 0 0 0-9-15 9 9 0 0 0-6 2.3L3 13"/>
+              </svg>
+              تراجع عن الأخيرة
+            </button>
+            <button type="button" id="show-history-btn" class="btn-secondary w-full">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              جدول الجولات
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: ADD ROUND -->
+  <div id="add-round-modal" class="modal-overlay">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3 class="modal-title">تسجيل نقاط الجولة</h3>
+        <button type="button" class="close-modal-btn" data-close="add-round-modal">&times;</button>
+      </div>
+      <form id="add-round-form" class="modal-body">
+        <div class="info-alert">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          أدخل النقاط التي كسبها كل طرف في هذه الجولة (أو اتركها 0)
+        </div>
+        
+        <!-- Score Input Rows (Dynamic) -->
+        <div id="round-inputs-list" class="modal-inputs-list">
+          <!-- Dynamic Input Rows will be added here -->
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close="add-round-modal">إلغاء</button>
+          <button type="submit" class="btn-primary">حفظ الجولة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: HISTORY -->
+  <div id="history-modal" class="modal-overlay">
+    <div class="modal-content glass history-modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">سجل تفاصيل الجولات</h3>
+        <button type="button" class="close-modal-btn" data-close="history-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr id="history-table-headers">
+                <th>الجولة</th>
+                <!-- Dynamic Player/Team Names -->
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+        <div id="no-history-msg" class="text-center" style="padding: 30px 10px; display: none;">
+          <p class="text-muted">لا توجد جولات مسجلة حتى الآن.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary w-full" data-close="history-modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GAME OVER CELEBRATION -->
+  <div id="game-over-modal" class="modal-overlay">
+    <div class="modal-content glass text-center game-over-content">
+      <div class="winner-trophy">🏆</div>
+      <h2 class="winner-title">انتهت المباراة!</h2>
+      <div class="winner-box">
+        <span class="winner-label">الفائز:</span>
+        <span id="winner-name-display" class="winner-name">اسم اللاعب</span>
+      </div>
+      <p id="winner-stats-display" class="winner-stats">النتيجة النهائية: 320 نقطة</p>
+      
+      <div class="modal-footer flex-column" style="margin-top: 30px; gap: 10px;">
+        <button type="button" id="btn-new-game" class="btn-primary w-full">مباراة جديدة</button>
+        <button type="button" id="btn-review-board" class="btn-secondary w-full">معاينة لوحة النتائج</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Toast / Dialogue -->
+  <div id="confirm-dialog" class="confirm-overlay">
+    <div class="confirm-box glass">
+      <h4 id="confirm-title" class="confirm-title">هل أنت متأكد؟</h4>
+      <p id="confirm-desc" class="confirm-desc">سيتم مسح الجولات الحالية والبدء من جديد.</p>
+      <div class="confirm-buttons">
+        <button type="button" id="confirm-cancel-btn" class="btn-secondary">إلغاء</button>
+        <button type="button" id="confirm-action-btn" class="btn-danger">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast-notification"></div>
+
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker Registered successfully', reg.scope))
+          .catch(err => console.error('Service Worker registration failed', err));
+      });
+    }
+  </script>
+  
+  <!-- Main logic -->
+  <script src="app.js"></script>
+</body>
+</html>
