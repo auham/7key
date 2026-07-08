@@ -349,10 +349,10 @@ function renderGameBoard() {
     scoresContainer.className = 'scores-grid solo-layout';
   }
 
-  // Sort indices by score descending to find rankings
-  const rankedIndices = [...Array(gameState.players.length).keys()].sort((a, b) => gameState.scores[b] - gameState.scores[a]);
+  // Sort indices by score ascending to find rankings (lowest score is best)
+  const rankedIndices = [...Array(gameState.players.length).keys()].sort((a, b) => gameState.scores[a] - gameState.scores[b]);
   const leaderIndex = rankedIndices[0];
-  const isDraw = gameState.scores[leaderIndex] === gameState.scores[rankedIndices[1]] && gameState.scores[leaderIndex] > 0;
+  const isDraw = gameState.scores[leaderIndex] === gameState.scores[rankedIndices[1]];
 
   gameState.players.forEach((playerName, index) => {
     const currentScore = gameState.scores[index];
@@ -365,28 +365,35 @@ function renderGameBoard() {
     if (gameState.gameMode === 'team') {
       cardClasses.push(`team-card-${index + 1}`);
     }
-    // Highlight current leader (if score > 0 and not a draw)
-    if (index === leaderIndex && currentScore > 0 && !isDraw) {
+    // Highlight current leader (if score matches the lowest and there's no tie on startup/draw)
+    if (index === leaderIndex && !isDraw) {
       cardClasses.push('winner-leading');
     }
     card.className = cardClasses.join(' ');
 
     // Calculate rank for solo mode
     let rankBadgeHTML = '';
-    if (gameState.gameMode === 'solo' && currentScore > 0) {
+    if (gameState.gameMode === 'solo') {
       const rank = rankedIndices.indexOf(index) + 1;
       let rankText = `${rank}#`;
       if (rank === 1 && !isDraw) rankText = '👑 الأول';
-      else if (rank === 2) rankText = 'الثاني';
-      else if (rank === 3) rankText = 'الثالث';
+      else if (rank === 2 && !isDraw) rankText = 'الثاني';
+      else if (rank === 3 && !isDraw) rankText = 'الثالث';
+      
+      // If it's a draw, show specific tie text
+      if (isDraw && (index === rankedIndices[0] || index === rankedIndices[1])) {
+        rankText = '🤝 متصدر';
+      }
       
       rankBadgeHTML = `<div class="rank-badge">${rankText}</div>`;
     }
 
     card.innerHTML = `
-      ${rankBadgeHTML}
       <div class="card-header-score">
-        <span class="score-card-name">${playerName}</span>
+        <div class="name-rank-container">
+          <span class="score-card-name">${playerName}</span>
+          ${rankBadgeHTML}
+        </div>
         <span class="score-card-val">${currentScore}</span>
       </div>
       <div class="progress-container">
@@ -520,30 +527,30 @@ function recalculateScores() {
 }
 
 function checkGameCompletion() {
-  // Find if anyone reached or exceeded the target score
-  const winners = [];
-  gameState.players.forEach((name, index) => {
-    if (gameState.scores[index] >= gameState.targetScore) {
-      winners.push({ index, name, score: gameState.scores[index] });
-    }
-  });
+  // Check if anyone reached or exceeded the target score (losing threshold)
+  const crossedTarget = gameState.scores.some(score => score >= gameState.targetScore);
 
-  if (winners.length > 0) {
+  if (crossedTarget) {
     gameState.isGameOver = true;
     
-    // Sort winners in case multiple players crossed the target in the same round
-    winners.sort((a, b) => b.score - a.score);
-    const finalWinner = winners[0];
-    
-    // Check for draw (two players crossed target with exact same score)
-    const isDraw = winners.length > 1 && winners[0].score === winners[1].score;
-    
-    if (isDraw) {
-      winnerNameDisplay.textContent = 'تعادل! 🤝';
-      winnerStatsDisplay.textContent = `الفريقان وصلا إلى ${finalWinner.score} نقطة`;
+    // Find the player(s) with the minimum score (lowest score wins!)
+    const minScore = Math.min(...gameState.scores);
+    const winners = [];
+    gameState.scores.forEach((score, index) => {
+      if (score === minScore) {
+        winners.push({ index, name: gameState.players[index], score });
+      }
+    });
+
+    if (winners.length > 1) {
+      // Tie for lowest score
+      winnerNameDisplay.textContent = 'تعادل بالصدارة! 🤝';
+      winnerStatsDisplay.textContent = `الفائزون بأقل نقاط: ${minScore} نقطة (${winners.map(w => w.name).join(' و ')})`;
     } else {
+      // Single winner
+      const finalWinner = winners[0];
       winnerNameDisplay.textContent = finalWinner.name;
-      winnerStatsDisplay.textContent = `النتيجة النهائية: ${finalWinner.score} نقطة`;
+      winnerStatsDisplay.textContent = `الفائز بأقل نقاط: ${finalWinner.score} نقطة`;
     }
 
     // Open celebration modal
