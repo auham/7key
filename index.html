@@ -2,11 +2,11 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>حاسبة لعبة الديمن | حاسبة نقاط ذكية وسريعة</title>
   
   <!-- SEO Meta Tags -->
-  <meta name="description" content="تطبيق ويب تقدمي (PWA) بسيط وعصري لحساب نقاط لعبة الديمن (فردي أو جماعي) متوافق بالكامل مع الجوال ويعمل دون اتصال بالإنترنت.">
+  <meta name="description" content="تطبيق ويب تقدمي (PWA) بسيط وعصري لحساب نقاط لعبة الديمن لللاعبين، متوافق بالكامل مع الجوال ويعمل دون اتصال بالإنترنت.">
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -56,41 +56,10 @@
       <section id="setup-screen" class="screen active">
         <div class="card glass">
           <h2 class="card-title text-center">إعداد مباراة جديدة</h2>
-          <p class="card-subtitle text-center">اختر وضع اللعب وحدد الخيارات المفضلة لديك</p>
+          <p class="card-subtitle text-center">حدد عدد وأسماء اللاعبين والنتيجة المستهدفة للبدء</p>
           
-          <!-- Mode Selector -->
-          <div class="mode-selector">
-            <button type="button" id="mode-team-btn" class="mode-btn active" data-mode="team">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              <span>لعب جماعي (فرق)</span>
-            </button>
-            <button type="button" id="mode-solo-btn" class="mode-btn" data-mode="solo">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
-              </svg>
-              <span>لعب فردي (لاعبين)</span>
-            </button>
-          </div>
-
-          <!-- Team Names Section -->
-          <div id="team-setup-section" class="setup-group">
-            <label class="input-label">أدخل أسماء الفرق:</label>
-            <div class="input-row">
-              <div class="input-wrapper">
-                <span class="input-prefix team-1">فريق 1</span>
-                <input type="text" id="team1-name" value="" placeholder="فريق ١ (مثال: لنا)" maxlength="15" autocomplete="off">
-              </div>
-              <div class="input-wrapper">
-                <span class="input-prefix team-2">فريق 2</span>
-                <input type="text" id="team2-name" value="" placeholder="فريق ٢ (مثال: لهم)" maxlength="15" autocomplete="off">
-              </div>
-            </div>
-          </div>
-
-          <!-- Solo Players Section -->
-          <div id="solo-setup-section" class="setup-group" style="display: none;">
+          <!-- Players Section -->
+          <div id="players-setup-section" class="setup-group">
             <div class="players-header">
               <label class="input-label">اللاعبين المشاركين:</label>
               <div class="player-controls">
@@ -134,7 +103,7 @@
       <section id="game-screen" class="screen">
         <!-- Game Sub-header -->
         <div class="game-meta">
-          <button type="button" id="back-to-setup-btn" class="btn-secondary btn-icon-only" aria-label="عودة">
+          <button type="button" id="back-to-setup-btn" class="btn-secondary btn-icon-only" aria-label="عودة" title="العودة للإعداد">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
               <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
@@ -142,15 +111,15 @@
           <div class="game-target-badge">
             الهدف: <span id="display-target-score">300</span>
           </div>
-          <button type="button" id="reset-game-btn" class="btn-danger-outline btn-icon-only" aria-label="إعادة تعيين">
+          <button type="button" id="reset-game-btn" class="btn-danger-outline btn-icon-only" aria-label="إعادة تعيين" title="إعادة تعيين النقاط">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
             </svg>
           </button>
         </div>
 
-        <!-- Scores Container (Dynamic Grid based on Mode) -->
-        <div id="scores-container" class="scores-grid team-layout">
+        <!-- Scores Container (Grid / Squares Layout) -->
+        <div id="scores-container" class="scores-grid">
           <!-- Dynamically populated scoreboard cards -->
         </div>
 
@@ -209,7 +178,7 @@
             <line x1="12" y1="16" x2="12" y2="12"></line>
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
-          أدخل النقاط التي كسبها كل طرف في هذه الجولة (أو اتركها 0)
+          أدخل النقاط التي كسبها كل لاعب (أو استخدم أزرار الإضافة السريعة)
         </div>
         
         <!-- Score Input Rows (Dynamic) -->

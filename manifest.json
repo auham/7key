@@ -1,7 +1,7 @@
 {
   "name": "حاسبة لعبة الديمن",
   "short_name": "حاسبة الديمن",
-  "description": "تطبيق بسيط وعصري لحساب نقاط لعبة الديمن (فردي أو جماعي)",
+  "description": "تطبيق بسيط وعصري لحساب نقاط لعبة الديمن لللاعبين",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",

@@ -1,16 +1,16 @@
 /**
  * Demen Card Game Calculator
- * core game logic and UI interactions
+ * Core game logic, state management, and UI interactions
  */
 
 // App State
 let gameState = {
-  gameMode: 'team', // 'team' or 'solo'
   targetScore: 300,
-  players: [],      // Array of names
-  rounds: [],       // Array of arrays representing scores per round e.g. [[10, 20], [0, 40]]
-  scores: [],       // Array of accumulated scores e.g. [10, 60]
-  isGameOver: false
+  players: [],       // Array of player names e.g. ['لاعب 1', 'لاعب 2', 'لاعب 3', 'لاعب 4']
+  rounds: [],        // Array of arrays representing scores per round e.g. [[10, 20, 0, 5]]
+  scores: [],        // Array of accumulated scores e.g. [10, 20, 0, 5]
+  isGameOver: false,
+  sortByRank: true   // Display horizontal cards sorted by standing
 };
 
 // DOM Elements
@@ -24,12 +24,6 @@ const setupScreen = document.getElementById('setup-screen');
 const gameScreen = document.getElementById('game-screen');
 
 // Setup Inputs
-const modeTeamBtn = document.getElementById('mode-team-btn');
-const modeSoloBtn = document.getElementById('mode-solo-btn');
-const teamSetupSection = document.getElementById('team-setup-section');
-const soloSetupSection = document.getElementById('solo-setup-section');
-const team1Input = document.getElementById('team1-name');
-const team2Input = document.getElementById('team2-name');
 const addPlayerBtn = document.getElementById('add-player-btn');
 const removePlayerBtn = document.getElementById('remove-player-btn');
 const playerCountDisplay = document.getElementById('player-count-display');
@@ -71,7 +65,7 @@ const confirmDesc = document.getElementById('confirm-desc');
 const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
 const confirmActionBtn = document.getElementById('confirm-action-btn');
 
-// Toast
+// Toast Notification
 const toastEl = document.getElementById('toast');
 
 // Settings & Constants
@@ -79,6 +73,17 @@ let soloPlayerCount = 4;
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
 let pendingConfirmAction = null;
+
+/* ==========================================================================
+   PREVENT MOBILE DOUBLE-TAP ZOOM & GESTURE ZOOM
+   ========================================================================== */
+document.addEventListener('dblclick', (e) => {
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('gesturestart', (e) => {
+  e.preventDefault();
+});
 
 /* ==========================================================================
    THEME MANAGEMENT (DARK / LIGHT MODE)
@@ -149,7 +154,7 @@ confirmActionBtn.addEventListener('click', () => {
 });
 
 /* ==========================================================================
-   GAME STATE LOCAL STORAGE SYNC
+   LOCAL STORAGE PERSISTENCE
    ========================================================================== */
 function saveStateToLocalStorage() {
   localStorage.setItem('demen-game-state', JSON.stringify(gameState));
@@ -159,7 +164,17 @@ function loadStateFromLocalStorage() {
   const savedState = localStorage.getItem('demen-game-state');
   if (savedState) {
     try {
-      gameState = JSON.parse(savedState);
+      const parsed = JSON.parse(savedState);
+      // Migration from old team mode if needed
+      if (parsed.gameMode === 'team' || !Array.isArray(parsed.players) || parsed.players.length < 2) {
+        parsed.players = (parsed.players && parsed.players.length >= 2) 
+          ? parsed.players 
+          : ['لاعب رقم 1', 'لاعب رقم 2', 'لاعب رقم 3', 'لاعب رقم 4'];
+      }
+      if (typeof parsed.sortByRank === 'undefined') {
+        parsed.sortByRank = true;
+      }
+      gameState = parsed;
       return true;
     } catch (e) {
       console.error('Failed to parse local storage game state', e);
@@ -175,53 +190,28 @@ function clearSavedState() {
 /* ==========================================================================
    SETUP SCREEN INTERACTIONS
    ========================================================================== */
-
-// Switch Modes (Team / Solo)
-modeTeamBtn.addEventListener('click', () => setMode('team'));
-modeSoloBtn.addEventListener('click', () => setMode('solo'));
-
-function setMode(mode) {
-  gameState.gameMode = mode;
-  if (mode === 'team') {
-    modeTeamBtn.classList.add('active');
-    modeSoloBtn.classList.remove('active');
-    teamSetupSection.style.display = 'block';
-    soloSetupSection.style.display = 'none';
-  } else {
-    modeTeamBtn.classList.remove('active');
-    modeSoloBtn.classList.add('active');
-    teamSetupSection.style.display = 'none';
-    soloSetupSection.style.display = 'block';
-    renderSoloPlayersInputs();
-  }
-}
-
-// Render inputs dynamically for individual players
 function renderSoloPlayersInputs() {
   playersListInputs.innerHTML = '';
   for (let i = 1; i <= soloPlayerCount; i++) {
     const wrapper = document.createElement('div');
     wrapper.className = 'input-wrapper';
     
-    // If it's a default name, keep it empty so placeholder is visible on mobile
-    let savedName = gameState.players[i-1] || '';
+    let savedName = (gameState.players && gameState.players[i - 1]) || '';
     if (savedName.startsWith('لاعب رقم ') || savedName.startsWith('اللاعب ')) {
       savedName = '';
     }
     
     wrapper.innerHTML = `
       <span class="input-prefix">لاعب ${i}</span>
-      <input type="text" id="player-${i}-name" value="${savedName}" placeholder="لاعب رقم ${i}" maxlength="12" autocomplete="off">
+      <input type="text" id="player-${i}-name" value="${savedName}" placeholder="لاعب رقم ${i}" maxlength="15" autocomplete="off">
     `;
     playersListInputs.appendChild(wrapper);
   }
   playerCountDisplay.textContent = `${soloPlayerCount} لاعبين`;
 }
 
-// Add/Remove players in Solo mode
 addPlayerBtn.addEventListener('click', () => {
   if (soloPlayerCount < MAX_PLAYERS) {
-    // Save current names first
     saveCurrentSoloNamesInput();
     soloPlayerCount++;
     renderSoloPlayersInputs();
@@ -234,7 +224,6 @@ removePlayerBtn.addEventListener('click', () => {
   if (soloPlayerCount > MIN_PLAYERS) {
     saveCurrentSoloNamesInput();
     soloPlayerCount--;
-    // Shrink players list in state
     if (gameState.players.length > soloPlayerCount) {
       gameState.players = gameState.players.slice(0, soloPlayerCount);
     }
@@ -267,16 +256,15 @@ targetBtns.forEach(btn => {
       customTargetInput.focus();
     } else {
       customTargetWrapper.style.display = 'none';
-      gameState.targetScore = parseInt(targetVal);
+      gameState.targetScore = parseInt(targetVal, 10);
     }
   });
 });
 
-// Custom target input change handler
 customTargetInput.addEventListener('input', () => {
-  let val = parseInt(customTargetInput.value);
+  let val = parseInt(customTargetInput.value, 10);
   if (isNaN(val) || val <= 0) {
-    gameState.targetScore = 300; // default backup
+    gameState.targetScore = 300;
   } else {
     gameState.targetScore = val;
   }
@@ -286,30 +274,19 @@ customTargetInput.addEventListener('input', () => {
    START GAME LOGIC
    ========================================================================== */
 startGameBtn.addEventListener('click', () => {
-  // 1. Determine Players / Teams Names
-  if (gameState.gameMode === 'team') {
-    const team1Name = team1Input.value.trim() || 'فريق ١';
-    const team2Name = team2Input.value.trim() || 'فريق ٢';
-    
-    if (team1Name === team2Name) {
-      showToast('الرجاء اختيار أسماء مختلفة للفريقين!');
-      return;
-    }
-    gameState.players = [team1Name, team2Name];
-  } else {
-    saveCurrentSoloNamesInput();
-    // Validate duplicates
-    const uniqueNames = new Set(gameState.players);
-    if (uniqueNames.size !== gameState.players.length) {
-      showToast('الرجاء التأكد من عدم تكرار أسماء اللاعبين!');
-      return;
-    }
+  saveCurrentSoloNamesInput();
+  
+  // Validate duplicate player names
+  const uniqueNames = new Set(gameState.players);
+  if (uniqueNames.size !== gameState.players.length) {
+    showToast('الرجاء التأكد من عدم تكرار أسماء اللاعبين!');
+    return;
   }
 
-  // 2. Determine Target Score
+  // Determine Target Score
   const activeTargetBtn = document.querySelector('.target-btn.active');
   if (activeTargetBtn && activeTargetBtn.getAttribute('data-target') === 'custom') {
-    const customVal = parseInt(customTargetInput.value);
+    const customVal = parseInt(customTargetInput.value, 10);
     if (isNaN(customVal) || customVal < 50) {
       showToast('الرجاء إدخال نتيجة نهائية صالحة (50 نقطة كحد أدنى)');
       return;
@@ -317,12 +294,11 @@ startGameBtn.addEventListener('click', () => {
     gameState.targetScore = customVal;
   }
 
-  // 3. Initialize scores
+  // Initialize scores
   gameState.scores = new Array(gameState.players.length).fill(0);
   gameState.rounds = [];
   gameState.isGameOver = false;
 
-  // 4. Save state & Transition
   saveStateToLocalStorage();
   goToGameScreen();
   showToast('بدأت المباراة! بالتوفيق للجميع 🃏');
@@ -337,62 +313,75 @@ function goToGameScreen() {
 }
 
 /* ==========================================================================
-   GAME BOARD RENDERING & INTERACTION
+   GAME BOARD RENDERING (SQUARE CARDS GRID & PREVIOUS SCORES)
    ========================================================================== */
 function renderGameBoard() {
   scoresContainer.innerHTML = '';
-  
-  // Apply layout class
-  if (gameState.gameMode === 'team') {
-    scoresContainer.className = 'scores-grid team-layout';
-  } else {
-    scoresContainer.className = 'scores-grid solo-layout';
-  }
+  scoresContainer.className = 'scores-grid';
 
-  // Sort indices by score ascending to find rankings (lowest score is best)
-  const rankedIndices = [...Array(gameState.players.length).keys()].sort((a, b) => gameState.scores[a] - gameState.scores[b]);
+  const totalRounds = gameState.rounds.length;
+
+  // Rank calculation (lowest score is best)
+  const rankedIndices = [...Array(gameState.players.length).keys()].sort(
+    (a, b) => gameState.scores[a] - gameState.scores[b]
+  );
   const leaderIndex = rankedIndices[0];
   const isDraw = gameState.scores[leaderIndex] === gameState.scores[rankedIndices[1]];
 
   gameState.players.forEach((playerName, index) => {
     const currentScore = gameState.scores[index];
     const progressPercent = Math.min((currentScore / gameState.targetScore) * 100, 100);
-    
-    const card = document.createElement('div');
-    
-    // Classes
-    let cardClasses = ['score-card'];
-    if (gameState.gameMode === 'team') {
-      cardClasses.push(`team-card-${index + 1}`);
+
+    // Calculate previous score before last round & points added in last round
+    let prevScore = 0;
+    let lastRoundPoints = 0;
+
+    if (totalRounds > 0) {
+      for (let r = 0; r < totalRounds - 1; r++) {
+        prevScore += gameState.rounds[r][index];
+      }
+      lastRoundPoints = gameState.rounds[totalRounds - 1][index];
     }
-    // Highlight current leader (if score matches the lowest and there's no tie on startup/draw)
-    if (index === leaderIndex && !isDraw) {
+
+    const card = document.createElement('div');
+    const cardClasses = ['score-card'];
+
+    const isCurrentLeader = index === leaderIndex && !isDraw;
+    if (isCurrentLeader) {
       cardClasses.push('winner-leading');
+    }
+    if (currentScore >= gameState.targetScore) {
+      cardClasses.push('danger-losing');
+    } else if (progressPercent >= 80) {
+      cardClasses.push('warning-near');
     }
     card.className = cardClasses.join(' ');
 
-    // Calculate rank for solo mode
-    let rankBadgeHTML = '';
-    if (gameState.gameMode === 'solo') {
-      const rank = rankedIndices.indexOf(index) + 1;
-      let rankText = `${rank}#`;
-      if (rank === 1 && !isDraw) rankText = '👑 الأول';
-      else if (rank === 2 && !isDraw) rankText = 'الثاني';
-      else if (rank === 3 && !isDraw) rankText = 'الثالث';
-      
-      // If it's a draw, show specific tie text
-      if (isDraw && (index === rankedIndices[0] || index === rankedIndices[1])) {
-        rankText = '🤝 متصدر';
-      }
-      
-      rankBadgeHTML = `<div class="rank-badge">${rankText}</div>`;
+    // Rank text and badge styling
+    const rank = rankedIndices.indexOf(index) + 1;
+    let rankText = `#${rank}`;
+    let rankBadgeClass = 'rank-other';
+
+    if (rank === 1 && !isDraw) {
+      rankText = '👑 الأول';
+      rankBadgeClass = 'rank-1';
+    } else if (isDraw && (index === rankedIndices[0] || index === rankedIndices[1])) {
+      rankText = '🤝 متصدر';
+      rankBadgeClass = 'rank-1';
+    } else if (rank === 2) {
+      rankText = '🥈 الثاني';
+      rankBadgeClass = 'rank-2';
+    } else if (rank === 3) {
+      rankText = '🥉 الثالث';
+      rankBadgeClass = 'rank-3';
     }
 
+    // Previous score badge HTML
     card.innerHTML = `
       <div class="card-header-score">
         <div class="name-rank-container">
-          <span class="score-card-name">${playerName}</span>
-          ${rankBadgeHTML}
+          <span class="score-card-name" title="${playerName}">${playerName}</span>
+          <span class="rank-badge ${rankBadgeClass}">${rankText}</span>
         </div>
         <span class="score-card-val">${currentScore}</span>
       </div>
@@ -411,62 +400,90 @@ function renderGameBoard() {
   });
 
   // Enable/Disable undo button
-  undoLastRoundBtn.disabled = gameState.rounds.length === 0;
+  undoLastRoundBtn.disabled = totalRounds === 0;
 
   // Render last round status banner
-  if (gameState.rounds.length > 0) {
+  if (totalRounds > 0) {
     lastRoundBanner.style.display = 'block';
-    const lastRound = gameState.rounds[gameState.rounds.length - 1];
-    
-    // Build a text details of last round: "لاعب1 (+10)، لاعب2 (+0)..."
+    const lastRound = gameState.rounds[totalRounds - 1];
+
     const details = gameState.players.map((name, idx) => {
-      const points = lastRound[idx];
-      return `${name} (${points >= 0 ? '+' : ''}${points})`;
-    }).join(' | ');
-    
-    lastRoundDetails.textContent = details;
+      const pts = lastRound[idx];
+      return `${name} (${pts >= 0 ? '+' : ''}${pts})`;
+    }).join(' • ');
+
+    lastRoundDetails.textContent = `جولة #${totalRounds}: ${details}`;
   } else {
     lastRoundBanner.style.display = 'none';
   }
 }
 
 /* ==========================================================================
-   ADD ROUND MODAL LOGIC
+   ADD ROUND MODAL (EXPANDED QUICK ADDS & CLEAR BUTTON)
    ========================================================================== */
 showAddRoundBtn.addEventListener('click', () => {
   if (gameState.isGameOver) {
     showToast('المباراة انتهت بالفعل! ابدأ مباراة جديدة.');
     return;
   }
-  
-  // Render Inputs inside modal
+
   roundInputsList.innerHTML = '';
   gameState.players.forEach((playerName, index) => {
     const row = document.createElement('div');
-    row.className = 'round-input-row';
-    
+    row.className = 'round-input-card';
+
+    const currentScore = gameState.scores[index] || 0;
+
     row.innerHTML = `
-      <span class="round-player-name">${playerName}</span>
-      <div class="score-entry-control">
+      <div class="round-input-top">
+        <div class="round-player-meta">
+          <span class="round-player-name">${playerName}</span>
+          <span class="round-player-current">النقاط الحالية: <strong>${currentScore}</strong></span>
+        </div>
+        <div class="round-input-controls">
+          <button type="button" class="btn-clear-score" data-player="${index}" title="مسح">✕</button>
+          <input type="number" id="round-score-${index}" class="score-entry-input" placeholder="0" min="0" max="1000" inputmode="numeric" value="">
+        </div>
+      </div>
+      <div class="quick-chips-wrapper">
         <button type="button" class="quick-add-btn" data-player="${index}" data-val="10">+10</button>
+        <button type="button" class="quick-add-btn" data-player="${index}" data-val="20">+20</button>
+        <button type="button" class="quick-add-btn" data-player="${index}" data-val="30">+30</button>
+        <button type="button" class="quick-add-btn" data-player="${index}" data-val="40">+40</button>
         <button type="button" class="quick-add-btn" data-player="${index}" data-val="50">+50</button>
-        <input type="number" id="round-score-${index}" class="score-entry-input" placeholder="0" min="0" max="1000" inputmode="numeric" value="">
       </div>
     `;
-    
+
     roundInputsList.appendChild(row);
   });
 
-  // Attach event listeners to the quick add buttons inside modal
+  // Attach quick add listeners with rapid-tap feedback and double-tap zoom protection
   const quickBtns = roundInputsList.querySelectorAll('.quick-add-btn');
   quickBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
       const playerIdx = btn.getAttribute('data-player');
-      const addVal = parseInt(btn.getAttribute('data-val'));
+      const addVal = parseInt(btn.getAttribute('data-val'), 10);
       const inputEl = document.getElementById(`round-score-${playerIdx}`);
       if (inputEl) {
-        const currentVal = parseInt(inputEl.value) || 0;
+        const currentVal = parseInt(inputEl.value, 10) || 0;
         inputEl.value = currentVal + addVal;
+        btn.classList.add('btn-tapped');
+        setTimeout(() => btn.classList.remove('btn-tapped'), 150);
+      }
+    });
+  });
+
+  // Attach clear buttons listeners
+  const clearBtns = roundInputsList.querySelectorAll('.btn-clear-score');
+  clearBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const playerIdx = btn.getAttribute('data-player');
+      const inputEl = document.getElementById(`round-score-${playerIdx}`);
+      if (inputEl) {
+        inputEl.value = '';
+        inputEl.focus();
       }
     });
   });
@@ -474,46 +491,39 @@ showAddRoundBtn.addEventListener('click', () => {
   openModal(addRoundModal);
 });
 
-// Save new round score
+// Save round scores
 addRoundForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  
+
   const roundScores = [];
   let allZero = true;
 
   for (let i = 0; i < gameState.players.length; i++) {
     const inputEl = document.getElementById(`round-score-${i}`);
-    const scoreVal = parseInt(inputEl.value) || 0;
-    
+    const scoreVal = parseInt(inputEl.value, 10) || 0;
+
     if (scoreVal < 0) {
       showToast('الرجاء إدخال نقاط موجبة فقط!');
       return;
     }
-    
+
     if (scoreVal > 0) allZero = false;
     roundScores.push(scoreVal);
   }
 
   if (allZero) {
-    showToast('الرجاء إدخال نقاط لأحد اللاعبين أو الفرق على الأقل!');
+    showToast('الرجاء إدخال نقاط لأحد اللاعبين على الأقل!');
     return;
   }
 
-  // Add round to game state
   gameState.rounds.push(roundScores);
-  
-  // Recalculate accumulated scores
   recalculateScores();
-
-  // Save State
   saveStateToLocalStorage();
 
-  // Render & Close modal
   renderGameBoard();
   closeModal(addRoundModal);
   showToast('تم تسجيل نقاط الجولة بنجاح ✔️');
 
-  // Check Game Over
   checkGameCompletion();
 });
 
@@ -527,13 +537,12 @@ function recalculateScores() {
 }
 
 function checkGameCompletion() {
-  // Check if anyone reached or exceeded the target score (losing threshold)
   const crossedTarget = gameState.scores.some(score => score >= gameState.targetScore);
 
   if (crossedTarget) {
     gameState.isGameOver = true;
-    
-    // Find the player(s) with the minimum score (lowest score wins!)
+
+    // Lowest score wins in Demen!
     const minScore = Math.min(...gameState.scores);
     const winners = [];
     gameState.scores.forEach((score, index) => {
@@ -543,17 +552,14 @@ function checkGameCompletion() {
     });
 
     if (winners.length > 1) {
-      // Tie for lowest score
       winnerNameDisplay.textContent = 'تعادل بالصدارة! 🤝';
       winnerStatsDisplay.textContent = `الفائزون بأقل نقاط: ${minScore} نقطة (${winners.map(w => w.name).join(' و ')})`;
     } else {
-      // Single winner
       const finalWinner = winners[0];
       winnerNameDisplay.textContent = finalWinner.name;
       winnerStatsDisplay.textContent = `الفائز بأقل نقاط: ${finalWinner.score} نقطة`;
     }
 
-    // Open celebration modal
     setTimeout(() => {
       openModal(gameOverModal);
     }, 600);
@@ -562,10 +568,10 @@ function checkGameCompletion() {
 
 /* ==========================================================================
    UNDO ROUND LOGIC
-   ========================================================================== */
+   ========================================================================= */
 undoLastRoundBtn.addEventListener('click', () => {
   if (gameState.rounds.length === 0) return;
-  
+
   showConfirm(
     'هل أنت متأكد؟',
     'سيتم التراجع عن الجولة الأخيرة وحذف نقاطها.',
@@ -581,42 +587,64 @@ undoLastRoundBtn.addEventListener('click', () => {
 });
 
 /* ==========================================================================
-   HISTORY MODAL LOGIC
+   HISTORY MODAL LOGIC (ROUNDS TABLE WITH PREVIOUS SCORES)
    ========================================================================== */
 showHistoryBtn.addEventListener('click', () => {
-  // Render headers
   historyTableHeaders.innerHTML = '<th>الجولة</th>';
   gameState.players.forEach(name => {
     historyTableHeaders.innerHTML += `<th>${name}</th>`;
   });
 
-  // Render rows
   historyTableBody.innerHTML = '';
-  
+
   if (gameState.rounds.length === 0) {
     noHistoryMsg.style.display = 'block';
   } else {
     noHistoryMsg.style.display = 'none';
-    
+
+    // Track running totals before each round
+    const runningTotals = new Array(gameState.players.length).fill(0);
+
     gameState.rounds.forEach((round, roundIdx) => {
       const row = document.createElement('tr');
-      
-      // Calculate which column was the highest scorer in this round
       const maxInRound = Math.max(...round);
-      
+
       let cellsHTML = `<td class="history-round-num">${roundIdx + 1}</td>`;
-      
+
       round.forEach((score, playerIdx) => {
+        const prevScore = runningTotals[playerIdx];
+        runningTotals[playerIdx] += score;
+        const currentTotal = runningTotals[playerIdx];
+
         let cellClass = '';
         if (score === maxInRound && score > 0) {
-          cellClass = gameState.gameMode === 'team' && playerIdx === 1 ? 'highlight-danger' : 'highlight-primary';
+          cellClass = 'highlight-danger';
         }
-        cellsHTML += `<td class="${cellClass}">${score}</td>`;
+
+        cellsHTML += `
+          <td class="${cellClass}">
+            <div class="history-cell-box">
+              <span class="history-pts">${score > 0 ? '+' + score : '0'}</span>
+              <span class="history-prev-tag">السابق: ${prevScore}</span>
+              <span class="history-total-tag">المجموع: ${currentTotal}</span>
+            </div>
+          </td>
+        `;
       });
-      
+
       row.innerHTML = cellsHTML;
       historyTableBody.appendChild(row);
     });
+
+    // Summary row at the bottom showing current final score
+    const totalRow = document.createElement('tr');
+    totalRow.className = 'history-total-row';
+    let totalCellsHTML = `<td><strong>الإجمالي</strong></td>`;
+    gameState.scores.forEach(score => {
+      totalCellsHTML += `<td><strong>${score}</strong></td>`;
+    });
+    totalRow.innerHTML = totalCellsHTML;
+    historyTableBody.appendChild(totalRow);
   }
 
   openModal(historyModal);
@@ -643,13 +671,12 @@ resetGameBtn.addEventListener('click', () => {
 backToSetupBtn.addEventListener('click', () => {
   showConfirm(
     'الخروج من المباراة؟',
-    'سيتم مسح الجولة الحالية والعودة لشاشة إعداد اللاعبين والفرق.',
+    'سيتم مسح الجولة الحالية والعودة لشاشة إعداد اللاعبين.',
     () => {
       clearSavedState();
-      // Go back to setup screen
       gameScreen.classList.remove('active');
       setupScreen.classList.add('active');
-      showToast('تم إنهاء المباراة بنجاح.');
+      showToast('تم إنهاء المباراة.');
     }
   );
 });
@@ -677,7 +704,6 @@ function closeModal(modalEl) {
   modalEl.classList.remove('active');
 }
 
-// Close buttons logic
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => {
     const modalId = btn.getAttribute('data-close');
@@ -686,14 +712,10 @@ document.querySelectorAll('[data-close]').forEach(btn => {
   });
 });
 
-// Close modal when clicking outside content
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
-      // Don't allow closing game over modal by clicking outside
-      if (overlay.id !== 'game-over-modal') {
-        closeModal(overlay);
-      }
+    if (e.target === overlay && overlay.id !== 'game-over-modal') {
+      closeModal(overlay);
     }
   });
 });
@@ -703,52 +725,39 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
    ========================================================================== */
 window.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  
-  // Try loading saved game
+
   const loaded = loadStateFromLocalStorage();
-  
-  if (loaded && gameState.players.length > 0) {
-    // Determine player counts for UI inputs in case they back out
-    if (gameState.gameMode === 'solo') {
-      soloPlayerCount = gameState.players.length;
-      setMode('solo');
-    } else {
-      setMode('team');
-      let p0 = gameState.players[0] || '';
-      let p1 = gameState.players[1] || '';
-      if (p0 === 'فريق ١' || p0 === 'لنا') p0 = '';
-      if (p1 === 'فريق ٢' || p1 === 'لهم') p1 = '';
-      team1Input.value = p0;
-      team2Input.value = p1;
-    }
-    
-    // Select correct target score in buttons
+
+  if (loaded && gameState.players.length >= MIN_PLAYERS) {
+    soloPlayerCount = gameState.players.length;
+    renderSoloPlayersInputs();
+
+    // Select target score button
     targetBtns.forEach(btn => {
       const targetVal = btn.getAttribute('data-target');
-      if (parseInt(targetVal) === gameState.targetScore) {
+      if (parseInt(targetVal, 10) === gameState.targetScore) {
         targetBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         customTargetWrapper.style.display = 'none';
       }
     });
-    
-    // If target is not one of presets, show custom target input
+
     const presets = [300, 500, 1000];
     if (!presets.includes(gameState.targetScore)) {
       targetBtns.forEach(b => b.classList.remove('active'));
-      document.getElementById('custom-target-trigger').classList.add('active');
+      const customTrigger = document.getElementById('custom-target-trigger');
+      if (customTrigger) customTrigger.classList.add('active');
       customTargetWrapper.style.display = 'flex';
       customTargetInput.value = gameState.targetScore;
     }
 
     goToGameScreen();
-    
-    // If was already game over, show it again
+
     if (gameState.isGameOver) {
       checkGameCompletion();
     }
   } else {
-    // Default setup
-    setMode('team');
+    soloPlayerCount = 4;
+    renderSoloPlayersInputs();
   }
 });

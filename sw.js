@@ -1,4 +1,4 @@
-const CACHE_NAME = 'demen-calc-v1';
+const CACHE_NAME = 'demen-calc-v5';
 const ASSETS = [
   './',
   './index.html',
