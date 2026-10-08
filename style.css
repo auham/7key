@@ -578,13 +578,14 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .score-card-name {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 1.25rem;
+  font-weight: 900;
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 95px;
+  max-width: 110px;
+  line-height: 1.2;
 }
 
 .rank-badge {
@@ -912,8 +913,8 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .round-player-name {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 1.15rem;
+  font-weight: 900;
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
@@ -988,7 +989,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 .quick-chips-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
 
@@ -997,8 +998,8 @@ input[type="text"]:focus, input[type="number"]:focus {
   background: var(--secondary);
   border: 1px solid var(--border-card);
   color: var(--text-main);
-  padding: 8px 2px;
-  font-size: 0.92rem;
+  padding: 8px 1px;
+  font-size: 0.9rem;
   font-weight: 800;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -1014,6 +1015,19 @@ input[type="text"]:focus, input[type="number"]:focus {
   border-color: var(--primary);
   color: #ffffff;
   transform: scale(0.92);
+}
+
+.quick-add-btn.sub-btn {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.quick-add-btn.sub-btn:active,
+.quick-add-btn.sub-btn.btn-tapped {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #ffffff;
 }
 
 /* HISTORY TABLE */

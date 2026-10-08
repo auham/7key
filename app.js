@@ -446,6 +446,7 @@ showAddRoundBtn.addEventListener('click', () => {
         </div>
       </div>
       <div class="quick-chips-wrapper">
+        <button type="button" class="quick-add-btn sub-btn" data-player="${index}" data-val="-10" title="إنقاص 10">-10</button>
         <button type="button" class="quick-add-btn" data-player="${index}" data-val="10">+10</button>
         <button type="button" class="quick-add-btn" data-player="${index}" data-val="20">+20</button>
         <button type="button" class="quick-add-btn" data-player="${index}" data-val="30">+30</button>
@@ -467,7 +468,8 @@ showAddRoundBtn.addEventListener('click', () => {
       const inputEl = document.getElementById(`round-score-${playerIdx}`);
       if (inputEl) {
         const currentVal = parseInt(inputEl.value, 10) || 0;
-        inputEl.value = currentVal + addVal;
+        const newVal = Math.max(0, currentVal + addVal);
+        inputEl.value = newVal > 0 ? newVal : '';
         btn.classList.add('btn-tapped');
         setTimeout(() => btn.classList.remove('btn-tapped'), 150);
       }
