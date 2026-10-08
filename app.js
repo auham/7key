@@ -346,10 +346,13 @@ function renderGameBoard() {
     const card = document.createElement('div');
     const cardClasses = ['score-card'];
 
-    const isCurrentLeader = index === leaderIndex && !isDraw;
-    if (isCurrentLeader) {
-      cardClasses.push('winner-leading');
+    // وضع هالة حمراء على الأخير (صاحب أعلى نقاط) وإزالة الهالة الخضراء عن الأول
+    const highestScore = Math.max(...gameState.scores);
+    const isTrailingLast = highestScore > 0 && currentScore === highestScore;
+    if (isTrailingLast) {
+      cardClasses.push('loser-trailing');
     }
+
     if (currentScore >= gameState.targetScore) {
       cardClasses.push('danger-losing');
     } else if (progressPercent >= 80) {
